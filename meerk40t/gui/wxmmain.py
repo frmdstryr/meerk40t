@@ -355,6 +355,7 @@ class MeerK40t(MWindow):
         self.pipe_state = None
         self.previous_position = None
         self.is_paused = False
+        self.profiler = None
 
         self.context.kernel.busyinfo.change(msg=_("Loading panels..."), keep=1)
         self._mgr = aui.AuiManager()
@@ -4428,6 +4429,19 @@ class MeerK40t(MWindow):
             self.context.signal("refresh_scene", "Scene")
             self.context.signal("theme")
 
+        def toggle_profiling():
+            if self.profiler is None:
+                from cProfile import Profile
+                self.profiler = Profile()
+                self.profiler.enable()
+                print("Profiler running")
+            else:
+                self.profiler.disable()
+                tag = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+                self.profiler.dump_stats(f"Meerk40t-{tag}.stats")
+                self.profiler = None
+                print("Profiler disabled")
+
         # ==========
         # VIEW MENU
         # ==========
@@ -4740,6 +4754,12 @@ class MeerK40t(MWindow):
                 "criteria": self.context.draw_mode & DRAW_MODE_VARIABLES != 0,
                 "action": toggle_draw_mode,
                 "parameter": DRAW_MODE_VARIABLES,
+                "level": 1,
+            },
+            {
+                "label": _("Toggle Profiling\tCtrl-Shift-P"),
+                "help": _("Run cProfiling"),
+                "action": toggle_profiling,
                 "level": 1,
             },
         ]
