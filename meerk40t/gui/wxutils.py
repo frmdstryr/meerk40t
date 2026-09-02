@@ -588,12 +588,70 @@ def set_color_according_to_theme(control, background, foreground):
         win = win.GetParent()
 
 
+
+FONT_WIDTH_CACHE = {}
+
+def validate_widths(font, check):
+    cache_key = (font.GetFaceName(), check)
+    if width_cache := FONT_WIDTH_CACHE.get(cache_key):
+        return width_cache
+
+    if check == "length":
+        minpattern = "0000"
+        maxpattern = "999999999.99mm"
+    elif check == "percent":
+        minpattern = "0000"
+        maxpattern = "99.99%"
+    elif check == "float":
+        minpattern = "0000"
+        maxpattern = "99999.99"
+    elif check == "angle":
+        minpattern = "0000"
+        maxpattern = "9999.99deg"
+    elif check == "int":
+        minpattern = "0000"
+        maxpattern = "-999999"
+    else:
+        minpattern = "0000"
+        maxpattern = "999999999.99mm"
+    # Let's be a bit more specific: what is the minimum size of the textcontrol fonts
+    # to hold these patterns
+    xsize = 15
+    imgBit = wx.Bitmap(xsize, xsize)
+    dc = wx.MemoryDC(imgBit)
+    dc.SelectObject(imgBit)
+    dc.SetFont(font)
+    f_width, f_height, f_descent, f_external_leading = dc.GetFullTextExtent(
+        minpattern
+    )
+    minw = f_width + 5
+    f_width, f_height, f_descent, f_external_leading = dc.GetFullTextExtent(
+        maxpattern
+    )
+    maxw = f_width + 10
+    # Now release dc
+    dc.SelectObject(wx.NullBitmap)
+    FONT_WIDTH_CACHE[cache_key] = (minw, maxw)
+    return minw, maxw
+
+
 class TextCtrl(wx.TextCtrl):
     """
     Just to add some of the more common things we need, i.e. smaller default size...
 
     Allow text boxes of specific types so that we can have consistent options for dealing with them.
     """
+
+    # For the sake of readability we allow multiple occurrences of
+    # the same character in the string even if it's unnecessary...
+    FLOAT_PATTERN = "+-.eE0123456789"
+    CHAR_PATTERNS = {
+        "length": FLOAT_PATTERN + "".join(ACCEPTED_UNITS),
+        "percent": FLOAT_PATTERN + r"%",
+        "float": FLOAT_PATTERN,
+        "angle": FLOAT_PATTERN + "".join(ACCEPTED_ANGLE_UNITS),
+        "int": r"-+0123456789"
+    }
 
     def __init__(
         self,
@@ -628,22 +686,7 @@ class TextCtrl(wx.TextCtrl):
         self._nonzero = nonzero
         if self._nonzero is None:
             self._nonzero = False
-        # For the sake of readability we allow multiple occurrences of
-        # the same character in the string even if it's unnecessary...
-        floatstr = "+-.eE0123456789"
-        unitstr = "".join(ACCEPTED_UNITS)
-        anglestr = "".join(ACCEPTED_ANGLE_UNITS)
-        self.charpattern = ""
-        if self._check == "length":
-            self.charpattern = floatstr + unitstr
-        elif self._check == "percent":
-            self.charpattern = floatstr + r"%"
-        elif self._check == "float":
-            self.charpattern = floatstr
-        elif self._check == "angle":
-            self.charpattern = floatstr + anglestr
-        elif self._check == "int":
-            self.charpattern = r"-+0123456789"
+        self.charpattern = self.CHAR_PATTERNS.get(check, "")
         self.lower_limit = None
         self.upper_limit = None
         self.lower_limit_err = None
@@ -678,49 +721,12 @@ class TextCtrl(wx.TextCtrl):
         self.Bind(wx.EVT_RIGHT_DOWN, self.on_right_click)
         if self._style & wx.TE_PROCESS_ENTER != 0:
             self.Bind(wx.EVT_TEXT_ENTER, self.on_enter)
-        _MIN_WIDTH, _MAX_WIDTH = self.validate_widths()
+        _MIN_WIDTH, _MAX_WIDTH = validate_widths(self.GetFont(), check)
         self.SetMinSize(dip_size(self, _MIN_WIDTH, -1))
         if limited:
             self.SetMaxSize(dip_size(self, _MAX_WIDTH, -1))
         set_color_according_to_theme(self, "text_bg", "text_fg")
 
-    def validate_widths(self):
-        minpattern = "0000"
-        maxpattern = "999999999.99mm"
-        if self._check == "length":
-            minpattern = "0000"
-            maxpattern = "999999999.99mm"
-        elif self._check == "percent":
-            minpattern = "0000"
-            maxpattern = "99.99%"
-        elif self._check == "float":
-            minpattern = "0000"
-            maxpattern = "99999.99"
-        elif self._check == "angle":
-            minpattern = "0000"
-            maxpattern = "9999.99deg"
-        elif self._check == "int":
-            minpattern = "0000"
-            maxpattern = "-999999"
-        # Let's be a bit more specific: what is the minimum size of the textcontrol fonts
-        # to hold these patterns
-        tfont = self.GetFont()
-        xsize = 15
-        imgBit = wx.Bitmap(xsize, xsize)
-        dc = wx.MemoryDC(imgBit)
-        dc.SelectObject(imgBit)
-        dc.SetFont(tfont)
-        f_width, f_height, f_descent, f_external_leading = dc.GetFullTextExtent(
-            minpattern
-        )
-        minw = f_width + 5
-        f_width, f_height, f_descent, f_external_leading = dc.GetFullTextExtent(
-            maxpattern
-        )
-        maxw = f_width + 10
-        # Now release dc
-        dc.SelectObject(wx.NullBitmap)
-        return minw, maxw
 
     def SetActionRoutine(self, action_routine):
         """
