@@ -202,14 +202,16 @@ def run():
 
         profiler = cProfile.Profile()
         profiler.enable()
-        _run = _exe(False, args)
-        while _run:
-            _run = _exe(True, args)
-            # We only do it once...
-            if "nuke_settings" in args:
-                args.nuke_settings = False
-        profiler.disable()
-        profiler.dump_stats(args.profiler)
+        try:
+            _run = _exe(False, args)
+            while _run:
+                _run = _exe(True, args)
+                # We only do it once...
+                if "nuke_settings" in args:
+                    args.nuke_settings = False
+        finally:
+            profiler.disable()
+            profiler.dump_stats(args.profiler)
         return
     _run = _exe(False, args)
     while _run:
