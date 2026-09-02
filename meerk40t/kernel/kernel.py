@@ -206,7 +206,7 @@ class Kernel(Settings):
         self.scheduler_handles_default_thread_jobs = True
 
         self.state = "init"
-        self._shutdown_requested = False
+        self._shutdown_requested = threading.Event()
 
         # Scheduler
         self.jobs = {}
@@ -1412,7 +1412,7 @@ class Kernel(Settings):
         """
         channel = self.channel("shutdown")
         self.state = "end"  # Terminates the Scheduler.
-        self._shutdown_requested = True
+        self._shutdown_requested.set()
 
         _ = self.translation
 
@@ -2037,13 +2037,13 @@ class Kernel(Settings):
         Check each job, and if that job is scheduled to run. Executes that job.
         @return:
         """
-        if self._shutdown_requested:
+        if self._shutdown_requested.wait(self.delay):
             return
         self.state = "active"
         while self.state != "end":
-            if self._shutdown_requested:
+            if self._shutdown_requested.wait(self.delay):
                 break
-            time.sleep(self.delay)
+            # time.sleep(self.delay)
             while self.state == "pause":
                 # The scheduler is paused.
                 time.sleep(0.1)
