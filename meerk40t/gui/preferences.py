@@ -799,16 +799,7 @@ class Preferences(MWindow):
 
         self.panel_ribbon = RibbonEditor(self, wx.ID_ANY, context=self.context)
 
-        self.notebook_main.AddPage(self.panel_main, _("General"))
-        self.notebook_main.AddPage(self.panel_input_output, _("Input/Output"))
-        self.notebook_main.AddPage(self.panel_classification, _("Classification"))
-        self.notebook_main.AddPage(self.panel_ops, _("Operations"))
-        self.notebook_main.AddPage(self.panel_gui, _("GUI"))
-        self.notebook_main.AddPage(self.panel_scene, _("Scene"))
-        self.notebook_main.AddPage(self.panel_color, _("Colors"))
-        self.notebook_main.AddPage(self.panel_ribbon, _("Ribbon"))
-
-        self.panels = [
+        panels = [
             self.panel_main,
             self.panel_input_output,
             self.panel_classification,
@@ -818,6 +809,19 @@ class Preferences(MWindow):
             self.panel_color,
             self.panel_ribbon,
         ]
+        for panel in panels:
+            panel.Reparent(self.notebook_main)
+
+        self.notebook_main.AddPage(self.panel_main, _("General"))
+        self.notebook_main.AddPage(self.panel_input_output, _("Input/Output"))
+        self.notebook_main.AddPage(self.panel_classification, _("Classification"))
+        self.notebook_main.AddPage(self.panel_ops, _("Operations"))
+        self.notebook_main.AddPage(self.panel_gui, _("GUI"))
+        self.notebook_main.AddPage(self.panel_scene, _("Scene"))
+        self.notebook_main.AddPage(self.panel_color, _("Colors"))
+        self.notebook_main.AddPage(self.panel_ribbon, _("Ribbon"))
+
+        self.panels = panels
         self.panel_ids = [
             "main",
             "classification",

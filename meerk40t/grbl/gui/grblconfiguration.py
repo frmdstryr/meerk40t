@@ -261,16 +261,21 @@ class GRBLConfiguration(MWindow):
         panel_actions = DefaultActionPanel(self, id=wx.ID_ANY, context=self.context)
         panel_formatter = FormatterPanel(self, id=wx.ID_ANY, context=self.context)
 
-        self.panels.append(panel_dim)
-        self.panels.append(panel_interface)
-        self.panels.append(panel_protocol)
-        self.panels.append(panel_global)
-        self.panels.append(panel_effects)
-        self.panels.append(panel_defaults)
-        self.panels.append(panel_esp3d)
-        self.panels.append(panel_warn)
-        self.panels.append(panel_actions)
-        self.panels.append(panel_formatter)
+        panels = [
+            panel_dim,
+            panel_interface,
+            panel_protocol,
+            panel_global,
+            panel_effects,
+            panel_defaults,
+            panel_esp3d,
+            panel_warn,
+            panel_actions,
+            panel_formatter,
+        ]
+        self.panels.extend(panels)
+        for panel in panels:
+            panel.Reparent(self.notebook_main)
 
         self.notebook_main.AddPage(panel_dim, _("Device"))
         self.notebook_main.AddPage(panel_interface, _("Interface"))
