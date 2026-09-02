@@ -71,7 +71,7 @@ class BalorDriver:
         self.is_relative = False
         self.laser = False
 
-        self._shutdown = False
+        self._shutdown = threading.Event()
 
         self.queue = list()
         self._queue_current = 0
@@ -108,13 +108,13 @@ class BalorDriver:
     def service_attach(self):
         # Clear shutdown flag and ensure pedal polling thread is running for the lifetime of the service
         # print ("BalorDriver: service_attach called, starting pedal polling thread.")
-        self._shutdown = False
+        self._shutdown.clear()
         self.start_pedal_polling(origin="service_attach")
 
     def service_detach(self):
         # Indicate we're shutting down and stop the pedal polling thread for good
         # print ("BalorDriver: service_detach called, shutting down pedal polling thread.")
-        self._shutdown = True
+        self._shutdown.set()
         # Force stopping the thread when shutting down the service
         self.stop_pedal_polling(origin="service_detach", force=True)
 
@@ -901,7 +901,7 @@ class BalorDriver:
         - True: Bit state 0 means "pressed" (active-low)
         - False: Bit state 1 means "pressed" (active-high)
         """
-        while self._pedal_thread_running and not self._shutdown:
+        while self._pedal_thread_running and not self._shutdown.wait(self._pedal_poll_interval):
             # status = self.connection.get_execution_status()
             try:
                 # Check if we should poll (only if pedal mode is active)
@@ -1016,7 +1016,7 @@ class BalorDriver:
 
             # Sleep for the configured interval
             # print(f"Will sleep for {self._pedal_poll_interval} seconds.")
-            time.sleep(self._pedal_poll_interval)
+            #time.sleep(self._pedal_poll_interval)
 
     def cylinder_validate(self):
         if self.service.cylinder_active:
